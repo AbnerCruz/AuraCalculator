@@ -280,6 +280,58 @@
     box-shadow:0 6px 20px rgba(0,0,0,.4);
     z-index:50;
   }
+
+  /* botões de informação */
+  .info-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:16px;height:16px;
+    border-radius:50%;
+    border:1px solid var(--gold-dim);
+    color:var(--gold-dim);
+    background:transparent;
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:10.5px;
+    cursor:pointer;
+    margin-left:7px;
+    padding:0;
+    line-height:1;
+    vertical-align:middle;
+  }
+  .info-btn:hover, .info-btn.open{border-color:var(--gold);color:var(--gold);}
+
+  .info-panel{
+    display:none;
+    margin-top:8px;
+    padding:11px 13px;
+    background:#0D1018;
+    border:1px solid var(--line);
+    border-left:2px solid var(--gold-dim);
+    border-radius:6px;
+    font-size:12.5px;
+    line-height:1.6;
+    color:#C9C4B4;
+  }
+  .info-panel.open{display:block;}
+
+  .tab{position:relative;padding-right:20px;}
+  .tab .info-mini{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:13px;height:13px;
+    border-radius:50%;
+    border:1px solid currentColor;
+    opacity:.5;
+    font-family:var(--serif);
+    font-style:italic;
+    font-size:9px;
+    margin-left:6px;
+    vertical-align:middle;
+  }
+  .tab .info-mini:hover{opacity:1;}
 </style>
 </head>
 <body>
@@ -296,10 +348,10 @@
   <section class="card">
     <h2><span class="n">1</span> O conjurador</h2>
 
-    <label for="nivel">Nível áurico</label>
+    <label for="nivel" id="lblNivel">Nível áurico</label>
     <select id="nivel"></select>
 
-    <label for="grauMax">Grau máximo confortável nesse nível</label>
+    <label for="grauMax" id="lblGrauMax">Grau máximo confortável nesse nível</label>
     <select id="grauMax">
       <option value="1">D1</option>
       <option value="2">D2</option>
@@ -309,13 +361,13 @@
     </select>
     <div class="hint">Isso define o teto de energia que ele consegue puxar do próprio reservatório de uma vez.</div>
 
-    <label>Pureza da intenção agora (p)</label>
+    <label id="lblPureza">Pureza da intenção agora (p)</label>
     <div class="slider-wrap">
       <input type="range" id="pureza" min="0.01" max="0.99" step="0.01" value="0.5">
       <span class="slider-val" id="purezaVal">0,50</span>
     </div>
 
-    <label>Alinhamento interno agora (a_i)</label>
+    <label id="lblAlinhamento">Alinhamento interno agora (a_i)</label>
     <div class="slider-wrap">
       <input type="range" id="alinhamento" min="0" max="1" step="0.01" value="0.5">
       <span class="slider-val" id="alinhamentoVal">0,50</span>
@@ -353,7 +405,7 @@
 
     <!-- Térmico -->
     <div class="subgrid" data-panel="termico">
-      <label>Tipo</label>
+      <label id="lblTermTipo">Tipo</label>
       <select id="termTipo">
         <option value="aquecer">Aquecer água</option>
         <option value="derreter">Derreter gelo</option>
@@ -374,14 +426,14 @@
 
     <!-- Biológico -->
     <div class="subgrid" data-panel="biologico">
-      <label>Massa de tecido curado (g)</label>
+      <label id="lblBioMassa">Massa de tecido curado (g)</label>
       <input type="number" id="bioMassa" value="50" min="0" step="1">
       <div class="hint">20.000 J por grama — o custo metabólico real de sintetizar tecido vivo.</div>
     </div>
 
     <!-- Informacional -->
     <div class="subgrid" data-panel="informacional">
-      <label>Complexidade</label>
+      <label id="lblInfoTipo">Complexidade</label>
       <select id="infoTipo">
         <option value="simples">Sugestão simples (um pensamento, um impulso)</option>
         <option value="media">Ilusão sensorial parcial (um som, uma imagem estática)</option>
@@ -750,7 +802,80 @@ document.querySelectorAll('input[type=number], select').forEach(el=>{
 
 calcular();
 
-/* ---------- PWA: instalação ---------- */
+/* ---------- BOTÕES DE INFORMAÇÃO ---------- */
+const INFO = {
+  nivel: "Define dois números ao mesmo tempo. Primeiro, o alinhamento com a Vontade (a_v = (nível−1)/9), que alimenta a ressonância — quanto mais alto, mais fácil puxar energia extra do campo espiritual. Segundo, junto com o grau máximo abaixo, o teto de energia que esse conjurador consegue mobilizar de uma vez. Não é a pureza da intenção: um ser de nível alto ainda pode agir com pureza baixa, e vice-versa.",
+  grauMax: "O maior grau de dificuldade (D1 a D5) que esse conjurador sustenta dentro do próprio nível sem forçar os limites. Junto com o nível, define o teto do reservatório dele — é contra esse teto que o app calcula se a conjuração ultrapassa a capacidade e aciona o modelo de radiação/desmaio.",
+  pureza: "O quão limpa é a onda da intenção: de quase 0 (confusa, dividida, hesitante) a quase 1 (perfeitamente convicta). É literalmente igual à eficiência da conjuração (η = p) — quanto maior, menos energia se perde como aura, e menor a chance de faltar pureza para o grau de dificuldade exigido (D5, por exemplo, pede p ≥ 0,90). Não tem nada a ver com moral: bondade pura e maldade pura podem ter pureza igualmente alta.",
+  alinhamento: "O quanto a frequência escolhida agora bate com a frequência natural do próprio ser, neste instante específico. Junto com o alinhamento do nível (a_v), forma a ressonância (R = a_i × a_v) — o bônus que faz parte do trabalho vir do campo espiritual em vez de sair inteiramente do próprio reservatório.",
+  tipo_mecanico: "Converte o efeito em energia cinética ou potencial pura — erguer peso ou arremessar algo com impacto. A categoria mais direta e mais barata em geral.",
+  tipo_termico: "Converte o efeito em energia térmica real: aquecer, derreter ou vaporizar. Usa o calor específico da água (4.180 J por kg por °C) e o calor latente (334.000 J/kg pra derreter gelo, 2.260.000 J/kg pra vaporizar água), ou uma energia customizada se o efeito não for bem representado pela água.",
+  tipo_biologico: "Cura e regeneração de tecido vivo, usando o custo metabólico real de sintetizar tecido: 20.000 J por grama. É por isso que curar é sempre mais caro do que parece — 100 g de ferimento já custam 2 milhões de joules.",
+  tipo_informacional: "Ilusões, sugestões, leitura de mente, memória. A energia envolvida é quase nula, mas a pureza mínima fica travada em D5 (p ≥ 0,90) não importa a energia usada — não existe enganar os sentidos de alguém com uma intenção suja.",
+  tipo_direto: "Pula a conversão física e deixa você inserir a energia (em Joules ou em UTA) direto na fórmula — útil pra testar um grau específico da escala sem passar por um efeito concreto.",
+  mec_erguer: "Energia potencial: massa × gravidade (9,8 m/s²) × altura. É o cálculo por trás da própria unidade do sistema (1 UTA = erguer 1 kg de ouro a 1 metro).",
+  mec_arremessar: "Energia cinética: metade da massa vezes o quadrado da velocidade — o mesmo cálculo de um projétil ou de um soco.",
+  termTipo: "Aquecer usa o calor específico da água (energia por kg por grau de variação de temperatura). Derreter e vaporizar usam o calor latente — um valor fixo por quilo, porque a temperatura não muda durante a mudança de estado. Customizada deixa você digitar a energia em Joules direto.",
+  bioMassa: "Cada grama de tecido reconstruído custa 20.000 J — o custo real de o corpo sintetizar tecido novo. É a mesma constante usada, ao contrário, quando o excesso de uma conjuração expõe o corpo (seção de ultrapassar o teto).",
+  infoTipo: "Sugestão simples ≈ 10⁻⁷ J (nível 1, D3). Ilusão parcial ≈ 10⁻⁶ J (D4). Ilusão completa e convincente ≈ 10⁻⁵ J (D5). Em todos os casos a pureza mínima exigida fica travada em 0,90 — o tamanho do efeito quase não muda a energia, só a exigência de controle.",
+  un_joules: "A unidade física crua — o que a tabela da escala usa por baixo dos panos.",
+  un_uta: "A unidade narrativa do sistema. 1 UTA = 10 J, definida como erguer 1 kg de ouro maciço a 1 metro do chão."
+};
+
+function toggleInfoPanel(panel, btn){
+  const willOpen = !panel.classList.contains('open');
+  panel.classList.toggle('open', willOpen);
+  if(btn) btn.classList.toggle('open', willOpen);
+}
+
+function addInfoToLabel(labelId, key){
+  const label = document.getElementById(labelId);
+  if(!label) return;
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'info-btn';
+  btn.textContent = 'i';
+  btn.setAttribute('aria-label','mais informações');
+  const panel = document.createElement('div');
+  panel.className = 'info-panel';
+  panel.textContent = INFO[key];
+  label.appendChild(btn);
+  label.insertAdjacentElement('afterend', panel);
+  btn.addEventListener('click', ()=>toggleInfoPanel(panel, btn));
+}
+
+function addInfoToTabs(containerId, keyPrefix, attrName){
+  const container = document.getElementById(containerId);
+  if(!container) return;
+  const sharedPanel = document.createElement('div');
+  sharedPanel.className = 'info-panel';
+  container.insertAdjacentElement('afterend', sharedPanel);
+  container.querySelectorAll('.tab').forEach(tab=>{
+    const mini = document.createElement('span');
+    mini.className = 'info-mini';
+    mini.textContent = 'i';
+    mini.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const key = keyPrefix + tab.dataset[attrName];
+      const same = sharedPanel.dataset.current === key && sharedPanel.classList.contains('open');
+      sharedPanel.textContent = INFO[key];
+      sharedPanel.dataset.current = key;
+      sharedPanel.classList.toggle('open', !same);
+    });
+    tab.appendChild(mini);
+  });
+}
+
+addInfoToLabel('lblNivel','nivel');
+addInfoToLabel('lblGrauMax','grauMax');
+addInfoToLabel('lblPureza','pureza');
+addInfoToLabel('lblAlinhamento','alinhamento');
+addInfoToLabel('lblTermTipo','termTipo');
+addInfoToLabel('lblBioMassa','bioMassa');
+addInfoToLabel('lblInfoTipo','infoTipo');
+addInfoToTabs('tipoTabs','tipo_','tipo');
+addInfoToTabs('mecSubTabs','mec_','mec');
+addInfoToTabs('diretoUnidade','un_','un');
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e)=>{
   e.preventDefault();

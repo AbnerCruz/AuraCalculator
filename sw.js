@@ -1,4 +1,4 @@
-const CACHE = 'calc-aurica-v1';
+const CACHE = 'calc-aurica-v2';
 const ASSETS = [
   './',
   './index.html',
